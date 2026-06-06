@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { X, Instagram, MessageCircle, Info, ExternalLink, Heart, Award, ShieldCheck } from 'lucide-react';
+import { X, Instagram, MessageCircle, Info, ExternalLink, Heart, Award, ShieldCheck, Github } from 'lucide-react';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -102,6 +102,15 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               >
                 <Instagram size={16} />
                 <span>Seguir no Instagram</span>
+              </a>
+              <a
+                href="https://github.com/PSMODS/termometro-escola-sabatina-brasil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-4 py-3 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.015]"
+              >
+                <Github size={16} />
+                <span>Ver no GitHub</span>
               </a>
             </div>
           </div>
