@@ -18,7 +18,7 @@ export const LAYOUT_PRESETS: Record<'compact' | 'standard' | 'stage', LayoutConf
     showProjectsSlide: true,
     stackLeftCards: true,
     decimals: 0,
-    theme: 'light'
+    theme: 'stage'
   },
   standard: {
     titleSize: 24,
@@ -32,7 +32,7 @@ export const LAYOUT_PRESETS: Record<'compact' | 'standard' | 'stage', LayoutConf
     showProjectsSlide: true,
     stackLeftCards: false,
     decimals: 1,
-    theme: 'light'
+    theme: 'stage'
   },
   stage: {
     titleSize: 32,
@@ -65,7 +65,7 @@ export function getThermometerLevel(percent: number): ThermometerLevel {
   if (percent <= 25) {
     return {
       level: 1,
-      label: 'Abaixo do esperado 😓',
+      label: 'Abaixo do esperado',
       colorClass: 'bg-red-500',
       bgColorClass: 'bg-red-50 dark:bg-red-950/20',
       borderColorClass: 'border-red-200 dark:border-red-900',
@@ -75,7 +75,7 @@ export function getThermometerLevel(percent: number): ThermometerLevel {
   } else if (percent <= 50) {
     return {
       level: 2,
-      label: 'Em progresso... 😐',
+      label: 'Em progresso',
       colorClass: 'bg-orange-500',
       bgColorClass: 'bg-orange-50 dark:bg-orange-950/20',
       borderColorClass: 'border-orange-200 dark:border-orange-900',
@@ -85,7 +85,7 @@ export function getThermometerLevel(percent: number): ThermometerLevel {
   } else if (percent <= 75) {
     return {
       level: 3,
-      label: 'Bom resultado! 🙂',
+      label: 'Bom resultado',
       colorClass: 'bg-amber-500',
       bgColorClass: 'bg-amber-50 dark:bg-amber-950/20',
       borderColorClass: 'border-amber-200 dark:border-amber-900',
@@ -95,7 +95,7 @@ export function getThermometerLevel(percent: number): ThermometerLevel {
   } else {
     return {
       level: 4,
-      label: 'Excelente resultado! 🎉🤩',
+      label: 'Excelente resultado',
       colorClass: 'bg-emerald-500',
       bgColorClass: 'bg-emerald-50 dark:bg-emerald-950/20',
       borderColorClass: 'border-emerald-200 dark:border-emerald-900',

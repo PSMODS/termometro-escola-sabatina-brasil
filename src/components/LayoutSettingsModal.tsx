@@ -5,9 +5,18 @@
 
 import { LayoutConfig } from '../types';
 import { LAYOUT_PRESETS } from '../lib/layout';
-import { 
-  X, Layout, Palette, Sliders, Type, 
-  Maximize2, Eye, LayoutGrid, Sun, Moon, MonitorPlay 
+import {
+  Check,
+  Eye,
+  Layout,
+  Moon,
+  Palette,
+  Ruler,
+  Sliders,
+  Sparkles,
+  Sun,
+  Type,
+  X,
 } from 'lucide-react';
 
 interface LayoutSettingsModalProps {
@@ -17,321 +26,179 @@ interface LayoutSettingsModalProps {
   setLayout: (newLayout: Partial<LayoutConfig> | ((prev: LayoutConfig) => LayoutConfig)) => void;
 }
 
+type PresetKey = 'compact' | 'standard' | 'stage';
+type ThemeKey = LayoutConfig['theme'];
+
+const presetOptions: Array<{ key: PresetKey; title: string; description: string; accent: string }> = [
+  { key: 'compact', title: 'Compacto', description: 'Mais conteúdo e controles discretos.', accent: 'blue' },
+  { key: 'standard', title: 'Equilibrado', description: 'Leitura confortável para computador e TV.', accent: 'cyan' },
+  { key: 'stage', title: 'Palco', description: 'Máximo contraste para telão 16:9.', accent: 'gold' },
+];
+
+const themeOptions: Array<{ key: ThemeKey; title: string; description: string; icon: typeof Sun }> = [
+  { key: 'light', title: 'Claro', description: 'Fundo claro para uso em sala.', icon: Sun },
+  { key: 'dark', title: 'Azul noturno', description: 'Escuro e confortável para leitura.', icon: Moon },
+  { key: 'stage', title: 'Palco', description: 'Azul-marinho com alto contraste.', icon: Sparkles },
+];
+
+const sameLayoutValue = (left: LayoutConfig, right: LayoutConfig, key: keyof LayoutConfig) => left[key] === right[key];
+
 export default function LayoutSettingsModal({
   isOpen,
   onClose,
   layout,
-  setLayout
+  setLayout,
 }: LayoutSettingsModalProps) {
   if (!isOpen) return null;
 
-  const handleApplyPreset = (presetKey: 'compact' | 'standard' | 'stage') => {
-    const selected = LAYOUT_PRESETS[presetKey];
-    setLayout(selected);
-  };
-
-  const updateField = (key: keyof LayoutConfig, value: any) => {
+  const updateField = <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) => {
     setLayout({ [key]: value });
   };
 
+  const applyPreset = (presetKey: PresetKey) => {
+    const preset = LAYOUT_PRESETS[presetKey];
+    setLayout({ ...preset, theme: presetKey === 'stage' ? 'stage' : layout.theme });
+  };
+
+  const isPresetActive = (presetKey: PresetKey) => {
+    const preset = LAYOUT_PRESETS[presetKey];
+    return (['titleSize', 'textSize', 'iconSize', 'spacingScale', 'resultScale', 'decimals', 'theme'] as const)
+      .every(key => sameLayoutValue(layout, preset, key));
+  };
+
+  const rangeFields: Array<{
+    key: 'titleSize' | 'textSize' | 'iconSize' | 'spacingScale' | 'resultScale';
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+    format: (value: number) => string;
+  }> = [
+    { key: 'titleSize', label: 'Títulos', min: 18, max: 36, step: 1, format: value => `${value}px` },
+    { key: 'textSize', label: 'Textos e legendas', min: 12, max: 24, step: 1, format: value => `${value}px` },
+    { key: 'iconSize', label: 'Ícones', min: 18, max: 36, step: 1, format: value => `${value}px` },
+    { key: 'spacingScale', label: 'Espaçamento', min: 75, max: 125, step: 5, format: value => `${value}%` },
+    { key: 'resultScale', label: 'Resultado e carinha', min: 80, max: 120, step: 5, format: value => `${value}%` },
+  ];
+
+  const rangeValue = (field: typeof rangeFields[number]) => {
+    const value = layout[field.key];
+    return field.key === 'spacingScale' || field.key === 'resultScale' ? Number(value) * 100 : Number(value);
+  };
+
+  const setRangeValue = (field: typeof rangeFields[number], value: number) => {
+    const nextValue = field.key === 'spacingScale' || field.key === 'resultScale' ? value / 100 : value;
+    updateField(field.key, nextValue as LayoutConfig[typeof field.key]);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity overflow-y-auto">
-      <div 
-        id="layout-modal-card"
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col my-8 max-h-[90vh]"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/45">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-lg">
-              <Layout size={18} />
-            </div>
+    <div className="layout-settings-overlay" role="presentation">
+      <div className="layout-settings-card" role="dialog" aria-modal="true" aria-labelledby="layout-modal-title">
+        <header className="layout-settings-header">
+          <div className="layout-settings-heading">
+            <div className="layout-settings-icon"><Layout size={20} /></div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white leading-none">Ajustes de Layout & Aparência</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure o tamanho, espaçamentos, temas e exibições do telão</p>
+              <h2 id="layout-modal-title">Ajustes da apresentação</h2>
+              <p>Controles compatíveis com o novo palco 16:9</p>
             </div>
           </div>
-          <button 
-            id="close-layout-modal"
-            onClick={onClose}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-md transition-colors"
-          >
-            <X size={18} />
+          <button className="layout-settings-close" onClick={onClose} aria-label="Fechar ajustes">
+            <X size={20} />
           </button>
-        </div>
+        </header>
 
-        {/* Body Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Presets Rápidos */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5 uppercase tracking-wider font-mono">
-              <Sliders size={15} className="text-purple-500" /> Presets de Exibição
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              {/* Compact */}
-              <button
-                onClick={() => handleApplyPreset('compact')}
-                className="p-3 bg-slate-50 dark:bg-slate-950/20 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-left transition-all hover:scale-[1.01] cursor-pointer"
-              >
-                <span className="block text-xs font-bold text-slate-800 dark:text-white">Compacto</span>
-                <span className="block text-[10px] text-slate-500 dark:text-slate-400 mt-1">Fontes menores, perfeito para monitores pequenos ou tablets.</span>
-              </button>
-
-              {/* Standard */}
-              <button
-                onClick={() => handleApplyPreset('standard')}
-                className="p-3 bg-blue-50/50 dark:bg-blue-950/10 hover:bg-blue-100/40 dark:hover:bg-blue-900/25 border border-blue-105 dark:border-blue-900/60 rounded-xl text-left transition-all hover:scale-[1.01] cursor-pointer"
-              >
-                <span className="block text-xs font-bold text-blue-800 dark:text-blue-300">Padrão</span>
-                <span className="block text-[10px] text-blue-600/70 dark:text-blue-400 mt-1">Excelente equilíbrio para uso diário em computadores.</span>
-              </button>
-
-              {/* Stage */}
-              <button
-                onClick={() => handleApplyPreset('stage')}
-                className="p-3 bg-purple-50/50 dark:bg-purple-950/10 hover:bg-purple-100/40 dark:hover:bg-purple-900/25 border border-purple-105 dark:border-purple-900/60 rounded-xl text-left transition-all hover:scale-[1.01] cursor-pointer"
-              >
-                <span className="block text-xs font-bold text-purple-800 dark:text-purple-300">Palco (Projeção)</span>
-                <span className="block text-[10px] text-purple-600/70 dark:text-purple-400 mt-1">Fontes massivas e contraste perfeito para projetores de telão.</span>
-              </button>
+        <div className="layout-settings-body">
+          <section className="layout-settings-section">
+            <div className="layout-settings-section-title"><Sliders size={16} /><span>Preset de leitura</span><small>aplica uma combinação pronta</small></div>
+            <div className="layout-choice-grid layout-choice-grid-3">
+              {presetOptions.map(option => {
+                const active = isPresetActive(option.key);
+                return (
+                  <button
+                    key={option.key}
+                    className={`layout-choice layout-choice-${option.accent} ${active ? 'is-active' : ''}`}
+                    onClick={() => applyPreset(option.key)}
+                    aria-pressed={active}
+                  >
+                    <span className="layout-choice-check">{active && <Check size={13} />}</span>
+                    <strong>{option.title}</strong>
+                    <span>{option.description}</span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </section>
 
-          <hr className="border-slate-105 dark:border-slate-800" />
-
-          {/* Temas Visuais */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5 uppercase tracking-wider font-mono">
-              <Palette size={15} className="text-purple-500" /> Tema de Acabamento
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              {/* Light */}
-              <button
-                onClick={() => updateField('theme', 'light')}
-                className={`p-3 border rounded-xl flex items-center justify-between transition-all cursor-pointer ${
-                  layout.theme === 'light'
-                    ? 'bg-amber-50 dark:bg-amber-950 border-amber-300 text-amber-850 dark:text-amber-100 shadow-xs'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <span className="text-xs font-bold">Claro Elegante</span>
-                <Sun size={16} className="text-amber-500" />
-              </button>
-
-              {/* Dark */}
-              <button
-                onClick={() => updateField('theme', 'dark')}
-                className={`p-3 border rounded-xl flex items-center justify-between transition-all cursor-pointer ${
-                  layout.theme === 'dark'
-                    ? 'bg-indigo-50 dark:bg-indigo-955 border-indigo-300 text-indigo-850 dark:text-indigo-100 shadow-xs'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <span className="text-xs font-bold">Escuro Moderno</span>
-                <Moon size={16} className="text-indigo-500" />
-              </button>
-
-              {/* Stage (Neon/High Contrast) */}
-              <button
-                onClick={() => updateField('theme', 'stage')}
-                className={`p-3 border rounded-xl flex items-center justify-between transition-all cursor-pointer ${
-                  layout.theme === 'stage'
-                    ? 'bg-purple-50 dark:bg-purple-955 border-purple-300 text-purple-850 dark:text-purple-100 shadow-xs'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <span className="text-xs font-bold">Palco / Projetor</span>
-                <MonitorPlay size={16} className="text-purple-500" />
-              </button>
+          <section className="layout-settings-section">
+            <div className="layout-settings-section-title"><Palette size={16} /><span>Cor da apresentação</span><small>azul-marinho recomendado para telão</small></div>
+            <div className="layout-choice-grid layout-choice-grid-3">
+              {themeOptions.map(option => {
+                const Icon = option.icon;
+                const active = layout.theme === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    className={`layout-theme-choice ${active ? 'is-active' : ''}`}
+                    onClick={() => updateField('theme', option.key)}
+                    aria-pressed={active}
+                  >
+                    <span className="layout-theme-icon"><Icon size={17} /></span>
+                    <span><strong>{option.title}</strong><small>{option.description}</small></span>
+                    {active && <Check className="layout-theme-check" size={16} />}
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </section>
 
-          <hr className="border-slate-105 dark:border-slate-800" />
-
-          {/* Ajuste Fino de Tipografia e Dimensões */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-1.5 uppercase tracking-wider font-mono">
-              <Type size={15} className="text-purple-500" /> Dimensões Físicas (Escalonamento)
-            </h3>
-            
-            <div className="space-y-4 bg-slate-50 dark:bg-slate-950/20 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
-              {/* Título */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Tamanho do Título</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{layout.titleSize}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="18"
-                  max="36"
-                  value={layout.titleSize}
-                  onChange={(e) => updateField('titleSize', Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
-
-              {/* Texto descritivo */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Tamanho das Legendas</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{layout.textSize}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="12"
-                  max="24"
-                  value={layout.textSize}
-                  onChange={(e) => updateField('textSize', Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
-
-              {/* Ícones */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Tamanho dos Ícones</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{layout.iconSize}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="18"
-                  max="36"
-                  value={layout.iconSize}
-                  onChange={(e) => updateField('iconSize', Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
-
-              {/* Espaçamento Global */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Escala de Espaçamento</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{(layout.spacingScale * 100).toFixed(0)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="75"
-                  max="125"
-                  step="5"
-                  value={layout.spacingScale * 100}
-                  onChange={(e) => updateField('spacingScale', Number(e.target.value) / 100)}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
-
-              {/* Largura Painel Esquerdo */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Fração do Painel de Entrada</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{layout.leftPanelWidth}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="30"
-                  max="70"
-                  value={layout.leftPanelWidth}
-                  onChange={(e) => updateField('leftPanelWidth', Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
-
-              {/* Escala do Rosto/Resultado */}
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium">
-                  <span className="text-slate-600 dark:text-slate-450">Escala das Faces do Termômetro</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{(layout.resultScale * 100).toFixed(0)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="80"
-                  max="120"
-                  step="5"
-                  value={layout.resultScale * 100}
-                  onChange={(e) => updateField('resultScale', Number(e.target.value) / 100)}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-              </div>
+          <section className="layout-settings-section">
+            <div className="layout-settings-section-title"><Ruler size={16} /><span>Escala do palco</span><small>ajuste o tamanho sem alterar cálculos</small></div>
+            <div className="layout-range-panel">
+              {rangeFields.map(field => {
+                const value = rangeValue(field);
+                return (
+                  <label className="layout-range" key={field.key}>
+                    <span><b>{field.label}</b><strong>{field.format(value)}</strong></span>
+                    <input
+                      type="range"
+                      min={field.min}
+                      max={field.max}
+                      step={field.step}
+                      value={value}
+                      onChange={event => setRangeValue(field, Number(event.target.value))}
+                    />
+                  </label>
+                );
+              })}
             </div>
-          </div>
+          </section>
 
-          <hr className="border-slate-105 dark:border-slate-800" />
-
-          {/* Toggles de Visualização de Seções */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3.5 flex items-center gap-1.5 uppercase tracking-wider font-mono">
-              <Eye size={15} className="text-purple-500" /> Toggles de Exibição Local
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50 dark:bg-slate-950/20 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
-              {/* Footer Summary */}
-              <label className="flex items-center space-x-3 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layout.showFooterSummary}
-                  onChange={(e) => updateField('showFooterSummary', e.target.checked)}
-                  className="w-4.5 h-4.5 text-purple-600 rounded bg-slate-150 border-slate-300 focus:outline-hidden"
-                />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Mostrar Resumo no Footer</span>
-                  <span className="text-[10px] text-slate-400">Exibe uma fita compacta com dados consolidados abaixo.</span>
-                </div>
+          <section className="layout-settings-section">
+            <div className="layout-settings-section-title"><Type size={16} /><span>Exibição do resultado</span><small>preferências do indicador atual</small></div>
+            <div className="layout-settings-options">
+              <label className="layout-toggle-row">
+                <span className="layout-toggle-copy"><Eye size={17} /><span><b>Cards de valores</b><small>mostra numerador e denominador à esquerda</small></span></span>
+                <input type="checkbox" checked={layout.showPresentationCards} onChange={event => updateField('showPresentationCards', event.target.checked)} />
               </label>
-
-              {/* Show Presentation Cards */}
-              <label className="flex items-center space-x-3 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layout.showPresentationCards}
-                  onChange={(e) => updateField('showPresentationCards', e.target.checked)}
-                  className="w-4.5 h-4.5 text-purple-600 rounded bg-slate-150 border-slate-300 focus:outline-hidden"
-                />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Exibir Cards da Esquerda</span>
-                  <span className="text-[10px] text-slate-400 font-medium">Mostra caixas descritivas de cada indicador de dados.</span>
-                </div>
-              </label>
-
-              {/* Show Projects Slide */}
-              <label className="flex items-center space-x-3 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layout.showProjectsSlide}
-                  onChange={(e) => updateField('showProjectsSlide', e.target.checked)}
-                  className="w-4.5 h-4.5 text-purple-600 rounded bg-slate-150 border-slate-300 focus:outline-hidden"
-                />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Habilitar Aba Projetos Sociais</span>
-                  <span className="text-[10px] text-slate-400">Ativa a aba das métricas sociais comunitárias da classe.</span>
-                </div>
-              </label>
-
-              {/* Stack Left Cards */}
-              <label className="flex items-center space-x-3 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layout.stackLeftCards}
-                  onChange={(e) => updateField('stackLeftCards', e.target.checked)}
-                  className="w-4.5 h-4.5 text-purple-600 rounded bg-slate-150 border-slate-300 focus:outline-hidden"
-                />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block">Empilhar Cards Verticalmente</span>
-                  <span className="text-[10px] text-slate-400">No painel esquerdo, empilha os indicadores uns sobre os outros.</span>
-                </div>
+              <label className="layout-toggle-row">
+                <span className="layout-toggle-copy"><Type size={17} /><span><b>Casas decimais</b><small>escolha a precisão exibida nos percentuais</small></span></span>
+                <select value={layout.decimals} onChange={event => updateField('decimals', Number(event.target.value))}>
+                  <option value={0}>0 casas</option>
+                  <option value={1}>1 casa</option>
+                  <option value={2}>2 casas</option>
+                </select>
               </label>
             </div>
+          </section>
+
+          <div className="layout-settings-note">
+            <Sparkles size={16} /> Os seis indicadores permanecem disponíveis no rodapé. As opções antigas de esconder projetos ou empilhar cards não são usadas pelo layout de palco.
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950/45 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 text-sm font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-xs hover:shadow-md transition-all cursor-pointer"
-          >
-            Confirmar Layout
-          </button>
-        </div>
+        <footer className="layout-settings-footer">
+          <button onClick={onClose}>Confirmar alterações</button>
+        </footer>
       </div>
     </div>
   );
